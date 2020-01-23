@@ -12,6 +12,16 @@ let gameMineCount = 40;
 let gameCellList = [];
 let gameStage;
 let gameLastClick = 0;
+let gameHeaderHeight = 50;
+let gameArea;
+
+let gameHeader;
+let gameTime = 0;
+let gameTimer;
+let gameTimeText;
+
+let gameFlagCount = 0;
+let gameFlagText;
 
 function main() {
     let type = "WebGL"
@@ -26,7 +36,7 @@ function main() {
     let parentDiv = document.getElementById("game")
 
     //create pixi canvas
-    let app = new PIXI.Application({ width: gameWidth, height: gameHeight });
+    let app = new PIXI.Application({ width: gameWidth, height: gameHeight + gameHeaderHeight });
 
     //Add the canvas that Pixi automatically created for you to the HTML document
     parentDiv.appendChild(app.view);
@@ -57,6 +67,7 @@ function cell(i, x, y, w, h, isMine) {
     rectangle.customIsMine = isMine; // flag to determine if mine
     rectangle.customIsShown = false;
     rectangle.on('click', e => {
+
         //try to simulate double click
         let now = new Date();
         now = now.getTime();
@@ -77,6 +88,9 @@ function cell(i, x, y, w, h, isMine) {
 }
 
 function cellClicked(cell, double = false) {
+    //start timer on initial click
+    processTime();
+
     // if (!cell.customIsShown && !cell.customIsFlagged) {
     if (!cell.customIsFlagged) {
         //cell.interactive = false;
@@ -90,6 +104,9 @@ function cellClicked(cell, double = false) {
 }
 
 function cellRightClicked(cell) {
+    //start timer on initial click
+    processTime();
+
     if (!cell.customIsShown)
         displayCellFlag(cell);
 }
@@ -104,11 +121,11 @@ function setup(app) {
     let x = 0;
     let y = 0;
 
-    let gw = app.renderer.width;
-    let gh = app.renderer.height;
-
     let w = (gameWidth / gameCol);
     let h = (gameHeight / gameRow);
+
+    gameArea = new PIXI.Container();
+    gameArea.y = gameHeaderHeight;
 
     //set of rnd index with mines
     let mineIndexSet = generateIndexSet(gameMineCount);
@@ -125,10 +142,61 @@ function setup(app) {
 
         let c = cell(i, x, y, w, h, mineIndexSet.has(i));
         cellCollection.push(c);
-        app.stage.addChild(c);
+        gameArea.addChild(c);
     }
 
+    app.stage.addChild(gameArea);
     gameCellList = cellCollection;
+
+
+    ///////////////////setup header///////////////////
+    gameHeader = new PIXI.Container();
+    app.stage.addChild(gameHeader);
+
+    ///////////////////timer///////////////////
+    let style = new PIXI.TextStyle({
+        fontFamily: "Arial",
+        fill: "white",
+        fontSize: 35,
+    });
+
+    //create text graphic, set position and add to cell
+    gameTimeText = new PIXI.Text('TIME: 000', style);
+    let dx = gameWidth - gameTimeText.width;
+    let dy = gameHeaderHeight / 2 - gameTimeText.height / 2;
+    gameTimeText.position.set(dx, dy);
+
+    gameHeader.addChild(gameTimeText);
+
+    ///////////////////mine///////////////////
+    //create text graphic, set position and add to cell
+    //let str = (gameMineCount / 1000).toPrecision(2).toString();
+    gameFlagText = new PIXI.Text('MINE: ' + gameMineCount, style);
+    dx = 0;
+    dy = gameHeaderHeight / 2 - gameFlagText.height / 2;
+    gameFlagText.position.set(dx, dy);
+
+    gameHeader.addChild(gameFlagText);
+
+}
+
+function processTime(stop = false) {
+    if (gameTime === 0) {
+        gameTime = 0.1;
+        gameTimer = setInterval(() => {
+            gameTime++;
+            let str = (gameTime / 1000).toString();
+            gameTimeText.text = "TIME: " + str.substring(2);
+        }, 1000);
+    } else if (stop) {
+        clearInterval(gameTimer);
+    }
+}
+
+function processFlagText(opt) {
+    gameFlagCount = opt ? gameFlagCount + 1 : gameFlagCount - 1;
+    // let str = ((gameMineCount - gameFlagCount) / 1000).toFixed(3).toString();
+    gameFlagText.text = "MINE: " + (gameMineCount - gameFlagCount);
 }
 
 //generate x indexs that contain mines
@@ -310,6 +378,8 @@ function displayCellFlag(cell) {
 
         cell.addChild(digit);
     }
+
+    processFlagText(cell.customIsFlagged);
 }
 
 function revealCell(cell, auto = false) {
@@ -396,39 +466,42 @@ function autoClick(cell) {
 
     //down
     if (lookBottom)
-        displayBombCount(gameCellList[cell.customIndex + 16]);
+        cellClicked(gameCellList[cell.customIndex + 16]);
 
     //up
     if (lookTop)
-        displayBombCount(gameCellList[cell.customIndex - 16]);
+        cellClicked(gameCellList[cell.customIndex - 16]);
 
     //left
     if (lookLeft)
-        displayBombCount(gameCellList[cell.customIndex - 1]);
+        cellClicked(gameCellList[cell.customIndex - 1]);
 
     //righ
     if (lookRight)
-        displayBombCount(gameCellList[cell.customIndex + 1]);
+        cellClicked(gameCellList[cell.customIndex + 1]);
 
     //top right
     if (lookTop && lookRight)
-        displayBombCount(gameCellList[cell.customIndex - 16 + 1]);
+        cellClicked(gameCellList[cell.customIndex - 16 + 1]);
 
     //bottom right
     if (lookBottom && lookRight)
-        displayBombCount(gameCellList[cell.customIndex + 16 + 1]);
+        cellClicked(gameCellList[cell.customIndex + 16 + 1]);
 
     //top left
     if (lookTop && lookLeft)
-        displayBombCount(gameCellList[cell.customIndex - 16 - 1]);
+        cellClicked(gameCellList[cell.customIndex - 16 - 1]);
 
     //bottom left
     if (lookBottom && lookLeft)
-        displayBombCount(gameCellList[cell.customIndex + 16 - 1]);
+        cellClicked(gameCellList[cell.customIndex + 16 - 1]);
 
 }
 
 function gameOver() {
+    //stop the timer
+    processTime(true);
+
     gameCellList.forEach((c, i, a) => {
         c.interactive = false;
         if (c.customIsMine) {
@@ -458,7 +531,7 @@ function gameOver() {
     let dy = gameHeight / 2 - digit.height / 2;
     digit.position.set(dx, dy);
 
-    gameStage.stage.addChild(digit);
+    gameArea.addChild(digit);
 }
 
 function gameWon() {
@@ -467,6 +540,9 @@ function gameWon() {
     })
 
     if (shown.length === (gameCol * gameRow - gameMineCount)) {
+
+        //stop timer
+        processTime(true);
 
         let style = new PIXI.TextStyle({
             fontFamily: "Arial",
@@ -487,7 +563,7 @@ function gameWon() {
         let dy = gameHeight / 2 - digit.height / 2;
         digit.position.set(dx, dy);
 
-        gameStage.stage.addChild(digit);
+        gameArea.addChild(digit);
         //gameStage.stop();
     }
 }
