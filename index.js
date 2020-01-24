@@ -11,9 +11,13 @@ let gameRow = gameCol;
 let gameMineCount = 40;
 let gameCellList = [];
 let gameStage;
-let gameLastClick = 0;
 let gameHeaderHeight = 50;
 let gameArea;
+
+
+let gameLastClick = 0;
+let gameLastTouch = 0;
+//let gameTouchTime = 0;
 
 let gameHeader;
 let gameTime = 0;
@@ -83,8 +87,22 @@ function cell(i, x, y, w, h, isMine) {
         gameLastClick = now;
     };
     rectangle.on('click', clickOrTap);
-    //rectangle.on('tap', clickOrTap);
     rectangle.on('rightclick', e => cellRightClicked(rectangle));
+
+    //touch screen input
+    //rectangle.on('tap', clickOrTap);
+    rectangle.on('touchstart', e => {
+        gameLastTouch = (new Date()).getTime();
+    });
+    rectangle.on('touchend', e => {
+        let now = (new Date()).getTime();
+        if ((now - gameLastTouch) < 500) {
+            clickOrTap();
+        } else {
+            cellRightClicked(rectangle);
+        }
+        gameLastTouch = 0;
+    });
 
     return rectangle;
 }
