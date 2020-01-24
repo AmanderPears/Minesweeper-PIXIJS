@@ -66,7 +66,7 @@ function cell(i, x, y, w, h, isMine) {
     rectangle.customIndex = i; //custom property to track index
     rectangle.customIsMine = isMine; // flag to determine if mine
     rectangle.customIsShown = false;
-    rectangle.on('click', e => {
+    let clickOrTap = e => {
 
         //try to simulate double click
         let now = new Date();
@@ -81,7 +81,9 @@ function cell(i, x, y, w, h, isMine) {
         }
 
         gameLastClick = now;
-    });
+    };
+    rectangle.on('click', clickOrTap);
+    rectangle.on('tap', clickOrTap);
     rectangle.on('rightclick', e => cellRightClicked(rectangle));
 
     return rectangle;
