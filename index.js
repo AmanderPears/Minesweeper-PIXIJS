@@ -83,7 +83,7 @@ function cell(i, x, y, w, h, isMine) {
         gameLastClick = now;
     };
     rectangle.on('click', clickOrTap);
-    rectangle.on('tap', clickOrTap);
+    //rectangle.on('tap', clickOrTap);
     rectangle.on('rightclick', e => cellRightClicked(rectangle));
 
     return rectangle;
